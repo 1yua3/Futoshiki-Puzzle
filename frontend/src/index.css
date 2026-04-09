@@ -1,0 +1,89 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&display=swap");
+
+@import "tailwindcss";
+@import "tailwind-scrollbar-hide/v4";
+@plugin "daisyui";
+
+* {
+  font-family: "Outfit", sans-serif;
+}
+/*
+.font-playfair {
+  font-family: "Playfair", serif;
+}
+
+.p:hover {
+  cursor: pointer;
+}
+.p-child *:hover {
+  cursor: pointer;
+}
+
+.show:focus * {
+  display: block;
+}
+
+.hide * {
+  display: none;
+}
+
+.shadow-gray {
+  box-shadow: 2px 2px 5px 2px lightgray;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  opacity: 0;
+}
+
+.fade-in {
+  animation: fade-in 0.2s ease-in;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+} */
+
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen;
+  }
+}
+
+@layer components {
+  .grid-cell {
+    @apply w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 
+           border-2 border-gray-300 
+           flex items-center justify-center 
+           text-xl font-bold 
+           transition-all duration-200 
+           bg-white hover:bg-blue-50;
+  }
+  
+  .grid-cell-fixed {
+    @apply bg-gray-100 text-gray-700;
+  }
+  
+  .grid-cell-selected {
+    @apply ring-4 ring-blue-400 bg-blue-100;
+  }
+  
+  .inequality-sign {
+    @apply text-gray-600 font-bold text-sm sm:text-base;
+  }
+}

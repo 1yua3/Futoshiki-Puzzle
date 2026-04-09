@@ -1,0 +1,81 @@
+.card {
+  position: absolute;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), 
+              top 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              left 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s ease, 
+              filter 0.2s ease;
+  user-select: none;
+  overflow: hidden;
+  will-change: transform, top, left;
+}
+
+.card.is-dragging {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+.card.red {
+  color: #d1111d;
+}
+
+.card.black {
+  color: #1a1a1a;
+}
+
+.card-corner {
+  position: absolute;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+}
+
+.card-corner.top-left {
+  top: 0;
+  left: 0;
+}
+
+.card-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  transform: rotate(180deg);
+}
+
+.card-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  opacity: 0.9;
+}
+
+/* Subtle gloss effect */
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}

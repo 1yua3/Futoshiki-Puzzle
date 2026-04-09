@@ -1,0 +1,38 @@
+.floating-number-pad {
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+}
+
+.pad-arrow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  border-right: 1px solid rgb(229, 231, 235);
+  border-bottom: 1px solid rgb(229, 231, 235);
+}
+
+.floating-number-pad button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.floating-number-pad button:active {
+  transform: scale(0.95);
+}
