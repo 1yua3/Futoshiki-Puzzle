@@ -381,44 +381,49 @@ class ForwardChainingSolver(BaseSolver):
                     new_facts.add(f"Val({i},{j},{possible[0]})")
 
         # 5b) Hidden Single trong hàng
+        # Dùng flag already_placed để rõ ràng hơn khi v đã được gán trong hàng
         for i in range(1, n + 1):
             for v in range(1, n + 1):
-                # Tìm các cột trong hàng i mà v còn có thể xuất hiện
+                already_placed = False  # v đã được gán ở đâu đó trong hàng i
                 possible_cols = []
+
                 for j in range(1, n + 1):
-                    # Ô đã có giá trị khác → bỏ qua
+                    if f"Val({i},{j},{v})" in facts:
+                        # Giá trị v đã có trong hàng → không cần suy thêm
+                        already_placed = True
+                        break
+                    if f"¬Val({i},{j},{v})" in facts:
+                        # v bị loại trừ tại ô này
+                        continue
                     if any(f"Val({i},{j},{v2})" in facts
                            for v2 in range(1, n + 1) if v2 != v):
-                        continue
-                    # Đã có Val(i,j,v) rồi → không cần xét
-                    if f"Val({i},{j},{v})" in facts:
-                        possible_cols = []  # giá trị đã có trong hàng
-                        break
-                    # Giá trị v bị loại trừ tại ô này
-                    if f"¬Val({i},{j},{v})" in facts:
+                        # Ô đã có giá trị khác → không thể chứa v
                         continue
                     possible_cols.append(j)
 
-                if len(possible_cols) == 1:
-                    # Giá trị v chỉ có thể ở 1 chỗ trong hàng → gán
+                if not already_placed and len(possible_cols) == 1:
+                    # v chỉ còn 1 chỗ duy nhất trong hàng i → buộc phải ở đó
                     new_facts.add(f"Val({i},{possible_cols[0]},{v})")
 
         # 5c) Hidden Single trong cột
+        # Tương tự 5b nhưng theo chiều cột
         for j in range(1, n + 1):
             for v in range(1, n + 1):
+                already_placed = False  # v đã được gán ở đâu đó trong cột j
                 possible_rows = []
+
                 for i in range(1, n + 1):
-                    if any(f"Val({i},{j},{v2})" in facts
-                           for v2 in range(1, n + 1) if v2 != v):
-                        continue
                     if f"Val({i},{j},{v})" in facts:
-                        possible_rows = []
+                        already_placed = True
                         break
                     if f"¬Val({i},{j},{v})" in facts:
                         continue
+                    if any(f"Val({i},{j},{v2})" in facts
+                           for v2 in range(1, n + 1) if v2 != v):
+                        continue
                     possible_rows.append(i)
 
-                if len(possible_rows) == 1:
+                if not already_placed and len(possible_rows) == 1:
                     new_facts.add(f"Val({possible_rows[0]},{j},{v})")
 
         return new_facts - facts
@@ -492,6 +497,32 @@ class ForwardChainingSolver(BaseSolver):
                 if len(rows_with_v) > 1:
                     facts.add(CONTRADICTION)
                     return
+
+        # C6: Vi phạm bất đẳng thức khi cả 2 ô đã được gán giá trị
+        # Trường hợp này R4 không tự phát hiện — cần kiểm tra tường minh
+        for i in range(1, n + 1):
+            for j in range(1, n):
+                v_left  = next((v for v in range(1, n+1) if f"Val({i},{j},{v})"   in facts), None)
+                v_right = next((v for v in range(1, n+1) if f"Val({i},{j+1},{v})" in facts), None)
+                if v_left is not None and v_right is not None:
+                    if f"LessH({i},{j})"    in facts and v_left >= v_right:
+                        facts.add(CONTRADICTION)
+                        return
+                    if f"GreaterH({i},{j})" in facts and v_left <= v_right:
+                        facts.add(CONTRADICTION)
+                        return
+
+        for i in range(1, n):
+            for j in range(1, n + 1):
+                v_top = next((v for v in range(1, n+1) if f"Val({i},{j},{v})"   in facts), None)
+                v_bot = next((v for v in range(1, n+1) if f"Val({i+1},{j},{v})" in facts), None)
+                if v_top is not None and v_bot is not None:
+                    if f"LessV({i},{j})"    in facts and v_top >= v_bot:
+                        facts.add(CONTRADICTION)
+                        return
+                    if f"GreaterV({i},{j})" in facts and v_top <= v_bot:
+                        facts.add(CONTRADICTION)
+                        return
 
     # ----------------------------------------------------------
     # XỬ LÝ KHI FC BỊ STUCK — BRANCHING
