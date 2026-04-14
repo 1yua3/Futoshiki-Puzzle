@@ -19,6 +19,7 @@
     "cropperjs": "^2.1.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
+    "i": "^0.3.7",
     "leaflet": "^1.9.4",
     "react": "^19.0.0-rc.1",
     "react-calendar": "^6.0.0",
