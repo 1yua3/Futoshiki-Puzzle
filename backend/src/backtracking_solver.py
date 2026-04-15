@@ -185,11 +185,6 @@ class BacktrackingSolver(BaseSolver):
         return count
         
     def forward_check(self, state, last_i=None, last_j=None):
-        """
-        Kiểm tra sau khi gán (last_i, last_j).
-        Chỉ duyệt các ô trong hàng last_i và cột last_j
-        thay vì toàn bộ N² ô → giảm từ O(N³) xuống O(N²).
-        """
         n = self.puzzle.size
         
         if last_i is not None and last_j is not None:
