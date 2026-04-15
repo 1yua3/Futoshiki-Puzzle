@@ -7,6 +7,7 @@ class BacktrackingSolver(BaseSolver):
     def __init__(self, puzzle, socketio=None, game_id=None):
         super().__init__(puzzle, socketio, game_id)
         self.backtracks = 0
+        self.solution_found = False
         
         # Stats
         self.max_depth = 0
@@ -20,19 +21,20 @@ class BacktrackingSolver(BaseSolver):
         for (i, j), val in self.puzzle.given_cells.items():
             initial_state.assignment[(i, j)] = val
             
-        self._send_progress(is_initial=True)
+        self._send_progress(state=initial_state, is_initial=True)
         
         result_state = self.backtrack(initial_state, max_time)
         if result_state:
+            self.solution_found = True
             elapsed = time.time() - self.start_time
             print(f"Solution found in {elapsed:.2f}s, {self.expanded_nodes} nodes")
-            self._send_progress(is_complete=True)
+            self._send_progress(state=result_state, is_complete=True)
             return result_state.assignment
             
         print(f"No solution found after {self.expanded_nodes} nodes")
         return None
         
-    def _send_progress(self, is_initial=False, is_complete=False):
+    def _send_progress(self, state=None, is_initial=False, is_complete=False):
         if not self.socketio:
             return
             
@@ -49,7 +51,7 @@ class BacktrackingSolver(BaseSolver):
         rate = self.expanded_nodes / elapsed if elapsed > 0 else 0
         
         total_cells = self.puzzle.size * self.puzzle.size
-        filled_cells = len(assignment) if hasattr(self, 'assignment') else 0
+        filled_cells = len(state.assignment) if state else 0
         
         progress = 100 if is_complete else (filled_cells / total_cells * 100)
         
@@ -102,8 +104,7 @@ class BacktrackingSolver(BaseSolver):
             self.max_depth = len(state.assignment)
             
         if self.expanded_nodes % 1000 == 0:
-            self.assignment = state.assignment
-            self._send_progress()
+            self._send_progress(state=state)
         
         if state.is_goal():
             return state
@@ -119,11 +120,11 @@ class BacktrackingSolver(BaseSolver):
             if state.is_valid_assignment(i, j, v):
                 new_state = state.apply_move(i, j, v)
                 
-                if self.forward_check(new_state):
+                if self.forward_check(new_state, i, j):
                     result = self.backtrack(new_state, max_time)
                     if result:
                         return result
-                        
+                
                 self.backtracks += 1
                 
         return None
@@ -183,20 +184,35 @@ class BacktrackingSolver(BaseSolver):
                     
         return count
         
-    def forward_check(self, state):
+    def forward_check(self, state, last_i=None, last_j=None):
+        """
+        Kiểm tra sau khi gán (last_i, last_j).
+        Chỉ duyệt các ô trong hàng last_i và cột last_j
+        thay vì toàn bộ N² ô → giảm từ O(N³) xuống O(N²).
+        """
         n = self.puzzle.size
         
-        for i in range(1, n+1):
-            for j in range(1, n+1):
-                if (i, j) not in state.assignment:
-                    has_possible = False
-                    for v in range(1, n+1):
-                        if state.is_valid_assignment(i, j, v):
-                            has_possible = True
-                            break
-                    if not has_possible:
-                        return False
-                        
+        if last_i is not None and last_j is not None:
+            # Chỉ check các ô bị ảnh hưởng: cùng hàng hoặc cùng cột
+            cells_to_check = set()
+            for j in range(1, n + 1):
+                if (last_i, j) not in state.assignment:
+                    cells_to_check.add((last_i, j))
+            for i in range(1, n + 1):
+                if (i, last_j) not in state.assignment:
+                    cells_to_check.add((i, last_j))
+        else:
+            # Fallback: check toàn bộ (khi không biết ô vừa gán)
+            cells_to_check = {
+                (i, j) for i in range(1, n + 1)
+                for j in range(1, n + 1)
+                if (i, j) not in state.assignment
+            }
+        
+        for (i, j) in cells_to_check:
+            if not any(state.is_valid_assignment(i, j, v) for v in range(1, n + 1)):
+                return False
+                
         return True
         
     def get_stats(self):
@@ -207,5 +223,5 @@ class BacktrackingSolver(BaseSolver):
             'backtracks': self.backtracks,
             'max_depth': self.max_depth,
             'time': elapsed,
-            'solution_found': self.expanded_nodes > 0
+            'solution_found': self.solution_found
         }
