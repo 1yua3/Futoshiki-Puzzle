@@ -17,6 +17,7 @@ class ForwardChainingSolver(BaseSolver):
         self.inferences = 0         # tổng số fact mới được suy ra
         self.branch_count = 0       # số lần phải đoán khi bị stuck
         self.max_facts = 0          # số facts tối đa đạt được
+        self.max_depth = 0          # chiều sâu đệ quy tối đa của branching
 
     # ----------------------------------------------------------
     # ĐIỂM VÀO CHÍNH
@@ -35,6 +36,7 @@ class ForwardChainingSolver(BaseSolver):
         self.inferences = 0
         self.branch_count = 0
         self.max_facts = 0
+        self.max_depth = 0
 
         # Bước 1: Khởi tạo tập facts ban đầu từ puzzle
         facts = self._initialize_facts()
@@ -569,7 +571,7 @@ class ForwardChainingSolver(BaseSolver):
 
         return best_cell
 
-    def _branch_and_propagate(self, facts: set, max_time: float) -> set | None:
+    def _branch_and_propagate(self, facts: set, max_time: float, depth: int = 0) -> set | None:
         """
         Khi FC không còn suy ra được gì mới mà puzzle chưa xong:
         1. Chọn ô có ít giá trị khả dĩ nhất (MRV)
@@ -584,6 +586,10 @@ class ForwardChainingSolver(BaseSolver):
 
         if self.cancelled:
             return None
+
+        # Cập nhật chiều sâu tối đa
+        if depth > self.max_depth:
+            self.max_depth = depth
 
         # Tìm ô tốt nhất để đoán
         cell = self._select_branch_cell(facts)
@@ -612,8 +618,8 @@ class ForwardChainingSolver(BaseSolver):
             if self._is_solved(facts_copy):
                 return facts_copy
 
-            # Nếu vẫn stuck → đệ quy tiếp
-            result = self._branch_and_propagate(facts_copy, max_time)
+            # Nếu vẫn stuck → đệ quy tiếp (tăng depth)
+            result = self._branch_and_propagate(facts_copy, max_time, depth + 1)
             if result is not None:
                 return result
 
@@ -716,6 +722,7 @@ class ForwardChainingSolver(BaseSolver):
             'inference_cycles': self.inference_cycles,
             'branch_count': self.branch_count,
             'max_facts': self.max_facts,
+            'max_depth': self.max_depth,   # chiều sâu đệ quy tối đa của branching
             'time': elapsed,
             'solution_found': self.solution is not None
         }
