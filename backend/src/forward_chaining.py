@@ -1,5 +1,6 @@
 from base_solver import BaseSolver
 import time
+import sys
 
 # Thuật toán áp dụng Modus Ponens liên tục (exhaustively) trên
 # tập hợp facts dạng chuỗi để suy ra lời giải.
@@ -17,6 +18,8 @@ class ForwardChainingSolver(BaseSolver):
         self.branch_count = 0       # số lần phải đoán khi bị stuck
         self.max_facts = 0          # số facts tối đa đạt được
         self.max_depth = 0          # chiều sâu đệ quy tối đa của branching
+        self.branching_decisions = 0
+        self.total_domain_sizes = 0
 
     def solve(self, max_time=300):
         """
@@ -516,6 +519,9 @@ class ForwardChainingSolver(BaseSolver):
 
         i, j = cell
         domain = self._get_domain(facts, i, j)
+        
+        self.branching_decisions += 1
+        self.total_domain_sizes += len(domain)
 
         for v in domain:
             self.branch_count += 1
@@ -618,16 +624,19 @@ class ForwardChainingSolver(BaseSolver):
         except Exception as e:
             print(f"[FC] Error sending progress: {e}")
 
-    # THỐNG KÊ
     def get_stats(self) -> dict:
         """Trả về thống kê hiệu suất của solver."""
         elapsed = time.time() - self.start_time if self.start_time else 0
+        avg_branching = self.total_domain_sizes / self.branching_decisions if self.branching_decisions > 0 else 0
         return {
             'inferences': self.inferences,
+            'visited': self.inference_cycles,
+            'avg_branching': avg_branching,
             'inference_cycles': self.inference_cycles,
             'branch_count': self.branch_count,
             'max_facts': self.max_facts,
             'max_depth': self.max_depth,
             'time': elapsed,
-            'solution_found': self.solution is not None
+            'solution_found': self.solution is not None,
+            'memory_used': sys.getsizeof(self) + (self.max_facts * 128)
         }

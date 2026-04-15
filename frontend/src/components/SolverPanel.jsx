@@ -295,8 +295,14 @@ const SolverPanel = ({ puzzleId, algorithm, onSolverStart }) => {
             <div className="space-y-2">
               {[
                 { label: 'Visited Nodes', value: stats.visitedNodes?.toLocaleString() || 0 },
-                { label: 'Best Heuristic', value: stats.bestHeuristic?.toFixed(2) || 0 },
-                { label: 'Start Heuristic', value: stats.startHeuristic?.toFixed(2) || 0 },
+                { 
+                  label: 'Best Heuristic', 
+                  value: solverResults.solver === 'astar' ? (stats.bestHeuristic?.toFixed(2) || 0) : 'N/A' 
+                },
+                { 
+                  label: 'Start Heuristic', 
+                  value: solverResults.solver === 'astar' ? (stats.startHeuristic?.toFixed(2) || 0) : 'N/A' 
+                },
                 { label: 'Avg Branching', value: stats.avgBranching?.toFixed(2) || 0 },
                 { 
                   label: 'Memory Used', 
