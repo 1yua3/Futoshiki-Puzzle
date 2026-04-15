@@ -12,16 +12,11 @@ class ForwardChainingSolver(BaseSolver):
     def __init__(self, puzzle, socketio=None, game_id=None):
         super().__init__(puzzle, socketio, game_id)
 
-        # Thống kê
         self.inference_cycles = 0   # số vòng lặp fixed-point
         self.inferences = 0         # tổng số fact mới được suy ra
         self.branch_count = 0       # số lần phải đoán khi bị stuck
         self.max_facts = 0          # số facts tối đa đạt được
         self.max_depth = 0          # chiều sâu đệ quy tối đa của branching
-
-    # ----------------------------------------------------------
-    # ĐIỂM VÀO CHÍNH
-    # ----------------------------------------------------------
 
     def solve(self, max_time=300):
         """
@@ -38,11 +33,11 @@ class ForwardChainingSolver(BaseSolver):
         self.max_facts = 0
         self.max_depth = 0
 
-        # Bước 1: Khởi tạo tập facts ban đầu từ puzzle
+        # Khởi tạo tập facts ban đầu từ puzzle
         facts = self._initialize_facts()
         self._send_progress(facts, is_initial=True)
 
-        # Bước 2: Chạy forward chaining đến điểm hội tụ
+        # Chạy forward chaining
         facts = self._run_forward_chaining(facts, max_time)
 
         # Kiểm tra kết quả sau FC
@@ -57,8 +52,8 @@ class ForwardChainingSolver(BaseSolver):
             self._send_progress(facts, is_complete=True)
             return self._extract_solution(facts)
 
-        # Buoc 3: Neu bi stuck (khong suy them duoc, chua xong)
-        # → thu doan va tiep tuc Forward Chaining
+        # Neu bi stuck (khong suy them duoc, chua xong)
+        # doan va tiep tuc Forward Chaining
         print(f"[FC] Stuck after {self.inference_cycles} cycles, starting branching...")
         result_facts = self._branch_and_propagate(facts, max_time)
 
@@ -72,10 +67,7 @@ class ForwardChainingSolver(BaseSolver):
         print(f"[FC] No solution found after {self.inference_cycles} cycles")
         return None
 
-    # ----------------------------------------------------------
-    # BƯỚC 1: KHỞI TẠO FACTS BAN ĐẦU
-    # ----------------------------------------------------------
-
+    # KHỞI TẠO FACTS BAN ĐẦU
     def _initialize_facts(self) -> set:
         """
         Chuyển thông tin puzzle thành tập facts FOL ban đầu.
@@ -113,16 +105,13 @@ class ForwardChainingSolver(BaseSolver):
 
         return facts
 
-    # ----------------------------------------------------------
-    # BƯỚC 2: VÒNG LẶP FIXED-POINT FORWARD CHAINING
-    # ----------------------------------------------------------
-
+    # VÒNG LẶP FIXED-POINT FORWARD CHAINING
     def _run_forward_chaining(self, facts: set, max_time: float) -> set:
         """
         Áp dụng tất cả luật Modus Ponens liên tục cho đến khi:
         - Không có fact mới nào được suy ra (fixed-point), hoặc
         - Phát hiện mâu thuẫn, hoặc
-        - Hết thời gian.
+        - Hết thời gian
         """
         changed = True
         while changed and CONTRADICTION not in facts:
@@ -138,7 +127,7 @@ class ForwardChainingSolver(BaseSolver):
             self.inference_cycles += 1
             old_size = len(facts)
 
-            # Áp dụng lần lượt 5 luật Modus Ponens
+            # Áp dụng 5 luật Modus Ponens
             # R1: Given Propagation
             new_facts = self._rule_given_propagation(facts)
             facts.update(new_facts)
@@ -178,18 +167,11 @@ class ForwardChainingSolver(BaseSolver):
 
         return facts
 
-    # ----------------------------------------------------------
-    # LUẬT 1 — GIVEN PROPAGATION
-    # ----------------------------------------------------------
-
+    # R1 — GIVEN PROPAGATION
     def _rule_given_propagation(self, facts: set) -> set:
         """
-        Modus Ponens R1:
-          Given(i,j,v) → Val(i,j,v)
-          Given(i,j,v) → ¬Val(i,j,v') với mọi v' ≠ v
-
         Nếu 1 ô đã được cho sẵn giá trị v, thì nó không thể là
-        bất kỳ giá trị nào khác.
+        bất kỳ giá trị nào khác
         """
         new_facts = set()
         n = self.puzzle.size
@@ -198,26 +180,20 @@ class ForwardChainingSolver(BaseSolver):
             for j in range(1, n + 1):
                 for v in range(1, n + 1):
                     if f"Given({i},{j},{v})" in facts:
-                        # Suy ra: ô này có giá trị v
+                        # suy ra ô này có giá trị v
                         new_facts.add(f"Val({i},{j},{v})")
-                        # Suy ra: ô này không thể là bất kỳ giá trị nào khác
+                        # suy ra ô này không thể là bất kỳ giá trị nào khác
                         for v2 in range(1, n + 1):
                             if v2 != v:
                                 new_facts.add(f"¬Val({i},{j},{v2})")
 
         return new_facts - facts
 
-    # ----------------------------------------------------------
-    # LUẬT 2 — ROW UNIQUENESS (Loại trừ theo hàng)
-    # ----------------------------------------------------------
-
+    # R2 — ROW UNIQUENESS (Loại trừ theo hàng)
     def _rule_row_uniqueness(self, facts: set) -> set:
         """
-        Modus Ponens R2:
-          Val(i,j,v) → ¬Val(i,j',v) với mọi j' ≠ j trong cùng hàng i
-
         Nếu 1 ô trong hàng đã có giá trị v, thì mọi ô khác cùng hàng
-        không thể là v (tính duy nhất trong hàng).
+        không thể là v
         """
         new_facts = set()
         n = self.puzzle.size
@@ -233,16 +209,11 @@ class ForwardChainingSolver(BaseSolver):
 
         return new_facts - facts
 
-    # ----------------------------------------------------------
-    # LUẬT 3 — COLUMN UNIQUENESS (Loại trừ theo cột)
-    # ----------------------------------------------------------
-
+    # R3 — COLUMN UNIQUENESS (Loại trừ theo cột)
     def _rule_col_uniqueness(self, facts: set) -> set:
         """
-        Modus Ponens R3:
-          Val(i,j,v) → ¬Val(i',j,v) với mọi i' ≠ i trong cùng cột j
-
-        Tương tự R2 nhưng áp dụng theo chiều cột.
+        Nếu 1 ô trong cột đã có giá trị v, thì mọi ô khác cùng cột
+        không thể là v
         """
         new_facts = set()
         n = self.puzzle.size
@@ -258,24 +229,12 @@ class ForwardChainingSolver(BaseSolver):
 
         return new_facts - facts
 
-    # ----------------------------------------------------------
-    # LUẬT 4 — INEQUALITY PROPAGATION (Suy ra từ bất đẳng thức)
-    # ----------------------------------------------------------
-
+    # R4 — INEQUALITY PROPAGATION
     def _rule_inequality_propagation(self, facts: set) -> set:
-        """
-        Modus Ponens R4 — áp dụng cho bất đẳng thức ngang và dọc.
-
-        Ví dụ LessH(i,j) tức là ô(i,j) < ô(i,j+1):
-          LessH(i,j) ∧ Val(i,j,v)     → ¬Val(i,j+1,v') với v' ≤ v
-          LessH(i,j) ∧ Val(i,j+1,v)   → ¬Val(i,j,v')   với v' ≥ v
-
-        Tương tự cho GreaterH, LessV, GreaterV.
-        """
         new_facts = set()
         n = self.puzzle.size
 
-        # --- Ràng buộc ngang ---
+        # Ràng buộc ngang
         for i in range(1, n + 1):
             for j in range(1, n):
                 left = (i, j)
@@ -283,35 +242,35 @@ class ForwardChainingSolver(BaseSolver):
 
                 if f"LessH({i},{j})" in facts:
                     # ô trái < ô phải
-                    # Nếu biết giá trị bên trái → cắt domain bên phải
+                    # Nếu biết giá trị bên trái => cắt domain bên phải
                     for v in range(1, n + 1):
                         if f"Val({left[0]},{left[1]},{v})" in facts:
-                            # Bên phải phải > v → loại tất cả v' ≤ v
+                            # Bên phải phải > v => loại tất cả v' <= v
                             for v2 in range(1, v + 1):
                                 new_facts.add(f"¬Val({right[0]},{right[1]},{v2})")
-                    # Nếu biết giá trị bên phải → cắt domain bên trái
+                    # Nếu biết giá trị bên phải => cắt domain bên trái
                     for v in range(1, n + 1):
                         if f"Val({right[0]},{right[1]},{v})" in facts:
-                            # Bên trái phải < v → loại tất cả v' ≥ v
+                            # Bên trái phải < v => loại tất cả v' >= v
                             for v2 in range(v, n + 1):
                                 new_facts.add(f"¬Val({left[0]},{left[1]},{v2})")
 
                 elif f"GreaterH({i},{j})" in facts:
                     # ô trái > ô phải
-                    # Nếu biết giá trị bên trái → cắt domain bên phải
+                    # Nếu biết giá trị bên trái => cắt domain bên phải
                     for v in range(1, n + 1):
                         if f"Val({left[0]},{left[1]},{v})" in facts:
-                            # Bên phải phải < v → loại tất cả v' ≥ v
+                            # Bên phải phải < v => loại tất cả v' >= v
                             for v2 in range(v, n + 1):
                                 new_facts.add(f"¬Val({right[0]},{right[1]},{v2})")
-                    # Nếu biết giá trị bên phải → cắt domain bên trái
+                    # Nếu biết giá trị bên phải => cắt domain bên trái
                     for v in range(1, n + 1):
                         if f"Val({right[0]},{right[1]},{v})" in facts:
-                            # Bên trái phải > v → loại tất cả v' ≤ v
+                            # Bên trái phải > v => loại tất cả v' <= v
                             for v2 in range(1, v + 1):
                                 new_facts.add(f"¬Val({left[0]},{left[1]},{v2})")
 
-        # --- Ràng buộc dọc ---
+        # Ràng buộc dọc
         for i in range(1, n):
             for j in range(1, n + 1):
                 top = (i, j)
@@ -321,12 +280,12 @@ class ForwardChainingSolver(BaseSolver):
                     # ô trên < ô dưới
                     for v in range(1, n + 1):
                         if f"Val({top[0]},{top[1]},{v})" in facts:
-                            # Ô dưới phải > v → loại v' ≤ v
+                            # Ô dưới phải > v => loại v' <= v
                             for v2 in range(1, v + 1):
                                 new_facts.add(f"¬Val({bot[0]},{bot[1]},{v2})")
                     for v in range(1, n + 1):
                         if f"Val({bot[0]},{bot[1]},{v})" in facts:
-                            # Ô trên phải < v → loại v' ≥ v
+                            # Ô trên phải < v => loại v' >= v
                             for v2 in range(v, n + 1):
                                 new_facts.add(f"¬Val({top[0]},{top[1]},{v2})")
 
@@ -334,40 +293,23 @@ class ForwardChainingSolver(BaseSolver):
                     # ô trên > ô dưới
                     for v in range(1, n + 1):
                         if f"Val({top[0]},{top[1]},{v})" in facts:
-                            # Ô dưới phải < v → loại v' ≥ v
+                            # Ô dưới phải < v => loại v' >= v
                             for v2 in range(v, n + 1):
                                 new_facts.add(f"¬Val({bot[0]},{bot[1]},{v2})")
                     for v in range(1, n + 1):
                         if f"Val({bot[0]},{bot[1]},{v})" in facts:
-                            # Ô trên phải > v → loại v' ≤ v
+                            # Ô trên phải > v => loại v' <= v
                             for v2 in range(1, v + 1):
                                 new_facts.add(f"¬Val({top[0]},{top[1]},{v2})")
 
         return new_facts - facts
 
-    # ----------------------------------------------------------
-    # LUẬT 5 — ELIMINATION (Gán giá trị khi chỉ còn 1 khả năng)
-    # ----------------------------------------------------------
-
+    # R5 — ELIMINATION (Gán giá trị khi chỉ còn 1 khả năng)
     def _rule_elimination(self, facts: set) -> set:
-        """
-        Modus Ponens R5 — hai kỹ thuật:
-
-        5a) Naked Single:
-          Nếu ô (i,j) chưa được gán VÀ chỉ còn đúng 1 giá trị v
-          chưa bị ¬Val loại → Val(i,j,v)
-
-        5b) Hidden Single trong hàng:
-          Nếu giá trị v chỉ có thể xuất hiện tại đúng 1 ô trong hàng i
-          → Val(i, that_col, v)
-
-        5c) Hidden Single trong cột:
-          Tương tự 5b nhưng theo cột.
-        """
         new_facts = set()
         n = self.puzzle.size
 
-        # 5a) Naked Single: ô chỉ còn 1 giá trị khả dĩ
+        # ô chỉ còn 1 giá trị
         for i in range(1, n + 1):
             for j in range(1, n + 1):
                 # Bỏ qua ô đã được gán
@@ -379,19 +321,16 @@ class ForwardChainingSolver(BaseSolver):
                     if f"¬Val({i},{j},{v})" not in facts
                 ]
                 if len(possible) == 1:
-                    # Chỉ còn 1 giá trị → buộc phải là nó
                     new_facts.add(f"Val({i},{j},{possible[0]})")
 
-        # 5b) Hidden Single trong hàng
-        # Dùng flag already_placed để rõ ràng hơn khi v đã được gán trong hàng
         for i in range(1, n + 1):
             for v in range(1, n + 1):
-                already_placed = False  # v đã được gán ở đâu đó trong hàng i
+                already_placed = False
                 possible_cols = []
 
                 for j in range(1, n + 1):
                     if f"Val({i},{j},{v})" in facts:
-                        # Giá trị v đã có trong hàng → không cần suy thêm
+                        # Giá trị v đã có trong hàng => không cần suy thêm
                         already_placed = True
                         break
                     if f"¬Val({i},{j},{v})" in facts:
@@ -399,19 +338,17 @@ class ForwardChainingSolver(BaseSolver):
                         continue
                     if any(f"Val({i},{j},{v2})" in facts
                            for v2 in range(1, n + 1) if v2 != v):
-                        # Ô đã có giá trị khác → không thể chứa v
+                        # Ô đã có giá trị khác => không thể chứa v
                         continue
                     possible_cols.append(j)
 
                 if not already_placed and len(possible_cols) == 1:
-                    # v chỉ còn 1 chỗ duy nhất trong hàng i → buộc phải ở đó
+                    # v chỉ còn 1 chỗ duy nhất trong hàng i => buộc phải ở đó
                     new_facts.add(f"Val({i},{possible_cols[0]},{v})")
 
-        # 5c) Hidden Single trong cột
-        # Tương tự 5b nhưng theo chiều cột
         for j in range(1, n + 1):
             for v in range(1, n + 1):
-                already_placed = False  # v đã được gán ở đâu đó trong cột j
+                already_placed = False
                 possible_rows = []
 
                 for i in range(1, n + 1):
@@ -430,20 +367,10 @@ class ForwardChainingSolver(BaseSolver):
 
         return new_facts - facts
 
-    # ----------------------------------------------------------
-    # PHÁT HIỆN MÂU THUẪN
-    # ----------------------------------------------------------
-
+    # phát hiện mâu thuẫn
     def _check_contradiction(self, facts: set):
         """
-        Phát hiện mâu thuẫn và thêm CONTRADICTION vào facts nếu có.
-
-        Các trường hợp mâu thuẫn:
-         C1: Ô có cả Val(i,j,v) và ¬Val(i,j,v) cùng lúc
-         C2: Ô có 2 giá trị khác nhau: Val(i,j,v1) và Val(i,j,v2)
-         C3: Ô không có giá trị nào khả thi (domain rỗng)
-         C4: Cùng hàng có 2 ô cùng giá trị: Val(i,j1,v) và Val(i,j2,v)
-         C5: Cùng cột có 2 ô cùng giá trị: Val(i1,j,v) và Val(i2,j,v)
+        Phát hiện mâu thuẫn và thêm CONTRADICTION vào facts nếu có
         """
         if CONTRADICTION in facts:
             return
@@ -457,18 +384,18 @@ class ForwardChainingSolver(BaseSolver):
                     if f"Val({i},{j},{v})" in facts
                 ]
 
-                # C1: Vừa có Val vừa có ¬Val cho cùng giá trị
+                # Vừa có Val vừa có ¬Val cho cùng giá trị
                 for v in vals_assigned:
                     if f"¬Val({i},{j},{v})" in facts:
                         facts.add(CONTRADICTION)
                         return
 
-                # C2: Ô có 2 giá trị khác nhau
+                # Ô có 2 giá trị khác nhau
                 if len(vals_assigned) > 1:
                     facts.add(CONTRADICTION)
                     return
 
-                # C3: Không còn giá trị nào khả thi
+                # Không còn giá trị nào khả thi
                 if not vals_assigned:
                     domain = [
                         v for v in range(1, n + 1)
@@ -478,7 +405,7 @@ class ForwardChainingSolver(BaseSolver):
                         facts.add(CONTRADICTION)
                         return
 
-        # C4: Trùng giá trị trong hàng
+        # Trùng giá trị trong hàng
         for i in range(1, n + 1):
             for v in range(1, n + 1):
                 cols_with_v = [
@@ -489,7 +416,7 @@ class ForwardChainingSolver(BaseSolver):
                     facts.add(CONTRADICTION)
                     return
 
-        # C5: Trùng giá trị trong cột
+        # Trùng giá trị trong cột
         for j in range(1, n + 1):
             for v in range(1, n + 1):
                 rows_with_v = [
@@ -500,8 +427,7 @@ class ForwardChainingSolver(BaseSolver):
                     facts.add(CONTRADICTION)
                     return
 
-        # C6: Vi phạm bất đẳng thức khi cả 2 ô đã được gán giá trị
-        # Trường hợp này R4 không tự phát hiện — cần kiểm tra tường minh
+        # Vi phạm bất đẳng thức khi cả 2 ô đã được gán giá trị
         for i in range(1, n + 1):
             for j in range(1, n):
                 v_left  = next((v for v in range(1, n+1) if f"Val({i},{j},{v})"   in facts), None)
@@ -526,17 +452,8 @@ class ForwardChainingSolver(BaseSolver):
                         facts.add(CONTRADICTION)
                         return
 
-    # ----------------------------------------------------------
     # XỬ LÝ KHI FC BỊ STUCK — BRANCHING
-    # ----------------------------------------------------------
-
     def _get_domain(self, facts: set, i: int, j: int) -> list:
-        """
-        Helper: Trả về danh sách các giá trị còn khả thi của ô (i,j).
-        Một giá trị v khả thi khi chưa có ¬Val(i,j,v) và
-        chưa có Val(i,j, giá trị khác).
-        """
-        # Nếu ô đã được gán → domain chính là giá trị đó
         n = self.puzzle.size
         for v in range(1, n + 1):
             if f"Val({i},{j},{v})" in facts:
@@ -567,19 +484,19 @@ class ForwardChainingSolver(BaseSolver):
                     best_size = len(domain)
                     best_cell = (i, j)
                     if best_size == 2:
-                        return best_cell  # Không thể tốt hơn
+                        return best_cell
 
         return best_cell
 
     def _branch_and_propagate(self, facts: set, max_time: float, depth: int = 0) -> set | None:
         """
         Khi FC không còn suy ra được gì mới mà puzzle chưa xong:
-        1. Chọn ô có ít giá trị khả dĩ nhất (MRV)
-        2. Thử từng giá trị → thêm vào facts giả định
-        3. Tiếp tục chạy FC trên bản sao facts
-        4. Nếu thành công → trả về
-        5. Nếu mâu thuẫn → thử giá trị khác (backtrack)
-        6. Nếu cạn giá trị → trả None (backtrack lên trên)
+        - Chọn ô có ít giá trị khả dĩ nhất (MRV)
+        - Thử từng giá trị => thêm vào facts giả định
+        - Tiếp tục chạy FC trên bản sao facts
+        - Nếu thành công => trả về
+        - Nếu mâu thuẫn => backtrack
+        - Nếu cạn giá trị => trả None (backtrack lên trên)
         """
         if time.time() - self.start_time > max_time:
             return None
@@ -594,7 +511,7 @@ class ForwardChainingSolver(BaseSolver):
         # Tìm ô tốt nhất để đoán
         cell = self._select_branch_cell(facts)
         if cell is None:
-            # Không còn ô nào để chọn → đã xong hoặc mâu thuẫn
+            # Không còn ô nào để chọn => đã xong hoặc mâu thuẫn
             return facts if self._is_solved(facts) else None
 
         i, j = cell
@@ -603,37 +520,34 @@ class ForwardChainingSolver(BaseSolver):
         for v in domain:
             self.branch_count += 1
 
-            # Tạo bản sao facts để thử giả thuyết: Val(i,j,v)
+            # Tạo bản sao facts để thử giả thuyết Val(i,j,v)
             facts_copy = facts.copy()
             facts_copy.add(f"Val({i},{j},{v})")
 
             # Tiếp tục chạy FC trên bản sao
             facts_copy = self._run_forward_chaining(facts_copy, max_time)
 
-            # Nếu mâu thuẫn → thử giá trị khác
+            # Nếu mâu thuẫn => thử giá trị khác
             if CONTRADICTION in facts_copy:
                 continue
 
-            # Nếu đã xong → thành công
+            # Nếu đã xong => thành công
             if self._is_solved(facts_copy):
                 return facts_copy
 
-            # Nếu vẫn stuck → đệ quy tiếp (tăng depth)
+            # Nếu vẫn stuck => đệ quy tiếp (tăng depth)
             result = self._branch_and_propagate(facts_copy, max_time, depth + 1)
             if result is not None:
                 return result
 
-        # Tất cả trường hợp đều thất bại → mâu thuẫn ở nhánh này
+        # Tất cả trường hợp đều thất bại => mâu thuẫn ở nhánh này
         return None
 
-    # ----------------------------------------------------------
     # KIỂM TRA VÀ TRÍCH XUẤT KẾT QUẢ
-    # ----------------------------------------------------------
-
     def _is_solved(self, facts: set) -> bool:
         """
         Kiểm tra puzzle đã được giải hoàn toàn chưa:
-        Mọi ô (i,j) đều phải có đúng 1 fact Val(i,j,v).
+        Mọi ô (i,j) đều phải có đúng 1 fact Val(i,j,v)
         """
         n = self.puzzle.size
         if CONTRADICTION in facts:
@@ -647,8 +561,7 @@ class ForwardChainingSolver(BaseSolver):
 
     def _extract_solution(self, facts: set) -> dict:
         """
-        Trích xuất lời giải từ tập facts.
-        Trả về dict {(row, col): value} (1-indexed).
+        Trích xuất lời giải từ tập facts
         """
         solution = {}
         n = self.puzzle.size
@@ -660,10 +573,6 @@ class ForwardChainingSolver(BaseSolver):
                         break
         return solution
 
-    # ----------------------------------------------------------
-    # GỬI TIẾN ĐỘ QUA WEBSOCKET
-    # ----------------------------------------------------------
-
     def _send_progress(self, facts: set, is_initial=False, is_complete=False):
         """Gửi tiến độ thực thi qua WebSocket (nếu có socketio)."""
         if not self.socketio:
@@ -671,7 +580,6 @@ class ForwardChainingSolver(BaseSolver):
 
         current_time = time.time()
 
-        # Throttle: chỉ gửi khi đủ khoảng thời gian hoặc đủ facts mới
         if not is_complete and not is_initial:
             time_diff = current_time - self.last_progress_time
             facts_diff = self.inferences - self.last_sent_nodes
@@ -710,10 +618,7 @@ class ForwardChainingSolver(BaseSolver):
         except Exception as e:
             print(f"[FC] Error sending progress: {e}")
 
-    # ----------------------------------------------------------
     # THỐNG KÊ
-    # ----------------------------------------------------------
-
     def get_stats(self) -> dict:
         """Trả về thống kê hiệu suất của solver."""
         elapsed = time.time() - self.start_time if self.start_time else 0
@@ -722,7 +627,7 @@ class ForwardChainingSolver(BaseSolver):
             'inference_cycles': self.inference_cycles,
             'branch_count': self.branch_count,
             'max_facts': self.max_facts,
-            'max_depth': self.max_depth,   # chiều sâu đệ quy tối đa của branching
+            'max_depth': self.max_depth,
             'time': elapsed,
             'solution_found': self.solution is not None
         }
