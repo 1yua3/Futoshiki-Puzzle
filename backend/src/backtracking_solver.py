@@ -11,6 +11,8 @@ class BacktrackingSolver(BaseSolver):
         
         # Stats
         self.max_depth = 0
+        self.branchings = 0
+        self.total_branches = 0
         
     def solve(self, max_time=300):
         self.reset_stats()
@@ -116,6 +118,9 @@ class BacktrackingSolver(BaseSolver):
         i, j = cell
         values = self.order_domain_values(i, j, state)
         
+        self.branchings += 1
+        self.total_branches += len(values)
+        
         for v in values:
             if state.is_valid_assignment(i, j, v):
                 new_state = state.apply_move(i, j, v)
@@ -212,11 +217,15 @@ class BacktrackingSolver(BaseSolver):
         
     def get_stats(self):
         elapsed = time.time() - self.start_time if self.start_time else 0
+        avg_branching = self.total_branches / self.branchings if self.branchings > 0 else 0
         
         return {
             'nodes_explored': self.expanded_nodes,
+            'visited': self.expanded_nodes,
             'backtracks': self.backtracks,
             'max_depth': self.max_depth,
             'time': elapsed,
-            'solution_found': self.solution_found
+            'solution_found': self.solution_found,
+            'avg_branching': avg_branching,
+            'memory_used': sys.getsizeof(self) + (self.max_depth * 512)
         }
