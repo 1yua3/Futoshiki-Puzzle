@@ -122,16 +122,16 @@ class BacktrackingSolver(BaseSolver):
         self.total_branches += len(values)
         
         for v in values:
-            if state.is_valid_assignment(i, j, v):
-                new_state = state.apply_move(i, j, v)
-                
-                if self.forward_check(new_state, i, j):
-                    result = self.backtrack(new_state, max_time)
-                    if result:
-                        return result
-                
-                self.backtracks += 1
-                
+            # values from order_domain_values are already validity-filtered
+            new_state = state.apply_move(i, j, v)
+            
+            if self.forward_check(new_state, i, j):
+                result = self.backtrack(new_state, max_time)
+                if result:
+                    return result
+            
+            self.backtracks += 1
+            
         return None
         
     def select_unassigned_cell(self, state):
@@ -193,7 +193,7 @@ class BacktrackingSolver(BaseSolver):
         n = self.puzzle.size
         
         if last_i is not None and last_j is not None:
-            # Chỉ check các ô bị ảnh hưởng: cùng hàng hoặc cùng cột
+            # Check các ô cùng hàng, cùng cột, và các ô kề có ràng buộc inequality
             cells_to_check = set()
             for j in range(1, n + 1):
                 if (last_i, j) not in state.assignment:
@@ -201,6 +201,18 @@ class BacktrackingSolver(BaseSolver):
             for i in range(1, n + 1):
                 if (i, last_j) not in state.assignment:
                     cells_to_check.add((i, last_j))
+            # Ô kề trái
+            if last_j > 1 and (last_i, last_j - 1) not in state.assignment:
+                cells_to_check.add((last_i, last_j - 1))
+            # Ô kề phải
+            if last_j < n and (last_i, last_j + 1) not in state.assignment:
+                cells_to_check.add((last_i, last_j + 1))
+            # Ô kề trên
+            if last_i > 1 and (last_i - 1, last_j) not in state.assignment:
+                cells_to_check.add((last_i - 1, last_j))
+            # Ô kề dưới
+            if last_i < n and (last_i + 1, last_j) not in state.assignment:
+                cells_to_check.add((last_i + 1, last_j))
         else:
             # Fallback: check toàn bộ (khi không biết ô vừa gán)
             cells_to_check = {
@@ -218,6 +230,7 @@ class BacktrackingSolver(BaseSolver):
     def get_stats(self):
         elapsed = time.time() - self.start_time if self.start_time else 0
         avg_branching = self.total_branches / self.branchings if self.branchings > 0 else 0
+        
         
         return {
             'nodes_explored': self.expanded_nodes,
