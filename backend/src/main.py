@@ -20,6 +20,7 @@ from astar_solver import AStarSolver
 from forward_chaining import ForwardChainingSolver
 from backward_chaining import BackwardChainingSolver
 from backtracking_solver import BacktrackingSolver
+from brute_force_solver import BruteForceSolver
 from kb_generator import KnowledgeBaseGenerator
 from puzzle_generator import FutoshikiGenerator
 
@@ -78,6 +79,8 @@ def solve_puzzle():
                     solver = ForwardChainingSolver(puzzle)
                 elif algorithm == 'backward':
                     solver = BackwardChainingSolver(puzzle)
+                elif algorithm == 'brute_force':
+                    solver = BruteForceSolver(puzzle, socketio=socketio, game_id=puzzle_id)
                 else:
                     solver = AStarSolver(puzzle, socketio=socketio, game_id=puzzle_id, heuristic_type=heuristic_type)
                 
