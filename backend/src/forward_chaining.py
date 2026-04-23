@@ -2,10 +2,6 @@ from base_solver import BaseSolver
 import time
 import sys
 
-# Thuật toán áp dụng Modus Ponens liên tục (exhaustively) trên
-# tập hợp facts dạng chuỗi để suy ra lời giải.
-
-# Hằng số đặc biệt đánh dấu trạng thái mâu thuẫn
 CONTRADICTION = "CONTRADICTION"
 
 
@@ -22,11 +18,6 @@ class ForwardChainingSolver(BaseSolver):
         self.total_domain_sizes = 0
 
     def solve(self, max_time=300):
-        """
-        Giải puzzle bằng FOL Forward Chaining.
-        Trả về dict {(row, col): value} nếu tìm được lời giải,
-        hoặc None nếu không tồn tại lời giải.
-        """
         self.reset_stats()
         self.start_time = time.time()
         self.last_progress_time = self.start_time
@@ -108,7 +99,6 @@ class ForwardChainingSolver(BaseSolver):
 
         return facts
 
-    # VÒNG LẶP FIXED-POINT FORWARD CHAINING
     def _run_forward_chaining(self, facts: set, max_time: float) -> set:
         """
         Áp dụng tất cả luật Modus Ponens liên tục cho đến khi:
@@ -130,7 +120,7 @@ class ForwardChainingSolver(BaseSolver):
             self.inference_cycles += 1
             old_size = len(facts)
 
-            # Áp dụng 5 luật Modus Ponens
+            # 5 luật Modus Ponens
             # R1: Given Propagation
             new_facts = self._rule_given_propagation(facts)
             facts.update(new_facts)
@@ -147,7 +137,7 @@ class ForwardChainingSolver(BaseSolver):
             new_facts = self._rule_inequality_propagation(facts)
             facts.update(new_facts)
 
-            # R5: Gán giá trị duy nhất còn lại (Naked + Hidden Single)
+            # R5: Gán giá trị duy nhất còn lại
             new_facts = self._rule_elimination(facts)
             facts.update(new_facts)
 
@@ -164,7 +154,7 @@ class ForwardChainingSolver(BaseSolver):
                 if new_size > self.max_facts:
                     self.max_facts = new_size
 
-            # Gửi tiến độ định kỳ
+            # Gửi tiến độ
             if self.inference_cycles % 5 == 0:
                 self._send_progress(facts)
 
