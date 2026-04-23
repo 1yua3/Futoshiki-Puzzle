@@ -65,12 +65,13 @@ const GameControls = () => {
 
         <div className="flex flex-col gap-3">
           <label className="font-semibold text-gray-700"> Giải bằng thuật toán:</label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {[
               { id: 'astar', label: 'A* Algorithm', color: 'purple' },
               { id: 'backtracking', label: 'Backtracking', color: 'indigo' },
               { id: 'forward', label: 'Forward Chaining', color: 'blue' },
-              { id: 'backward', label: 'Backward Chaining', color: 'cyan' }
+              { id: 'backward', label: 'Backward Chaining', color: 'cyan' },
+              { id: 'brute_force', label: 'Brute Force', color: 'blue' }
             ].map((algo) => (
               <Button
                 key={algo.id}
