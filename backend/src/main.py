@@ -377,7 +377,7 @@ def random_puzzle():
     try:
         data = request.json
         size = data.get('size', 4)
-        inputs_dir = os.path.join(backend_dir, 'src', 'input')
+        inputs_dir = os.path.join(backend_dir, 'src', 'Inputs')
         candidates = []
         for file in glob.glob(os.path.join(inputs_dir, 'input-*.txt')):
             if not file.endswith('_output.txt'):
