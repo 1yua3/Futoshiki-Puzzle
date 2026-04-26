@@ -468,4 +468,5 @@ class BackwardChainingSolver(BaseSolver):
             'nodes_explored': self.inferences, 'inferences': self.inferences, 'backtracks': self.backtracks,
             'max_depth': self.max_depth_reached, 'time': elapsed,
             'solution_found': len(self.solution) == self.puzzle.size * self.puzzle.size,
+            'memory_used': sys.getsizeof(self) + sys.getsizeof(self.memo) + (self.max_depth_reached * 512)
         }
